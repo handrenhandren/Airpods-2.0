@@ -39,11 +39,13 @@ class MainActivity : Activity() {
     private var bestTime = 0L
     private var lastUpdate = 0L
     private var seen = 0
+    private var appleSeen = 0
+    private var lastApple = "-"
 
     private val tick = object : Runnable {
         override fun run() {
             if (scanning && SystemClock.elapsedRealtime() - lastUpdate > 10_000) {
-                statusView.text = "Keine AirPods gefunden – Case-Deckel öffnen\n(Bluetooth-Signale gesehen: $seen)"
+                statusView.text = "Keine AirPods gefunden – Case-Deckel öffnen\nSignale: $seen, davon Apple: $appleSeen\nLetztes Apple-Signal: $lastApple"
             }
             ui.postDelayed(this, 2_000)
         }
@@ -158,7 +160,10 @@ class MainActivity : Activity() {
     private val callback = object : ScanCallback() {
         override fun onScanResult(callbackType: Int, result: ScanResult) {
             seen++
-            val d =result.scanRecord?.getManufacturerSpecificData(0x004C) ?: return
+            val d = result.scanRecord?.getManufacturerSpecificData(0x004C) ?: return
+            appleSeen++
+            lastApple = "Typ %02X, %d Bytes: ".format(d[0].toInt() and 0xFF, d.size) +
+                d.take(12).joinToString(" ") { "%02X".format(it.toInt() and 0xFF) }
             if (d.size < 8 || d[0] != 0x07.toByte()) return
 
             // Bei mehreren AirPods in der Nähe: das Gerät mit dem stärksten Signal anzeigen
